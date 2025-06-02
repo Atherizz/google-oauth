@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+  <div class="bg-white p-6 rounded-2xl shadow-lg text-center w-full max-w-sm">
+    <div id="user-info" class="space-y-4">
+      <p class="text-gray-500">Loading user data...</p>
+    </div>
+    <button onclick="logout()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition">
+      Logout
+    </button>
+  </div>
+
+  <script>
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/user');
+        if (!res.ok) throw new Error('Failed to fetch user');
+
+        const user = await res.json();
+
+        document.getElementById('user-info').innerHTML = `
+          <img src="${user.picture}" alt="User photo" class="w-24 h-24 rounded-full mx-auto shadow">
+          <h2 class="text-xl font-semibold">${user.name}</h2>
+          <p class="text-gray-600">${user.email}</p>
+        `;
+      } catch (err) {
+        document.getElementById('user-info').innerHTML = `
+          <p class="text-red-500">Error fetching user data</p>
+        `;
+        console.error(err);
+      }
+    }
+
+    function logout() {
+      window.location.href = "/logout"; 
+    }
+
+    fetchUser();
+  </script>
+
+</body>
+</html>

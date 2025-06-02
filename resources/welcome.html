@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Welcome</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-2xl shadow-md text-center w-full max-w-sm">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Welcome, User!</h1>
+      <a href="profile.html" class="text-gray-600 hover:text-blue-500">
+        <i data-lucide="user-circle" class="w-8 h-8"></i>
+      </a>
+    </div>
+    <p class="mb-6 text-gray-700">This is your dashboard.</p>
+    <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-full">
+      Logout
+    </button>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
