@@ -58,22 +58,6 @@ func (middleware *Oauth2Middleware) Wrap(next httprouter.Handle) httprouter.Hand
 			http.Redirect(writer, request, OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline), http.StatusNotFound)
 			return
 		}
-
-		// idToken, ok := token.Extra("id_token").(string)
-
-		// if !ok {
-		// 	http.Error(writer, "no id_token in field token", http.StatusInternalServerError)
-		// }
-
-		// tokenPayload, err := helper.DecodeIdToken(idToken)
-		// if err != nil {
-		// 	http.Redirect(writer, request, OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline), http.StatusNotFound)
-		// 	return
-		// }
-
-		// ctx := context.WithValue(request.Context(), "email", tokenPayload.Email)
-		// ctx = context.WithValue(ctx, "name", tokenPayload.Name)
-		// ctx = context.WithValue(ctx, "picture", tokenPayload.Picture)
 	
 		tokenSource := OauthConfig.TokenSource(request.Context(), token)
 
@@ -83,6 +67,7 @@ func (middleware *Oauth2Middleware) Wrap(next httprouter.Handle) httprouter.Hand
 			return
 		}
 
+		
 		next(writer, request, param)
 
 	}

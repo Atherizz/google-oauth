@@ -6,31 +6,30 @@ import (
 	"fmt"
 	"google-oauth/helper"
 	"google-oauth/middleware"
+	"google-oauth/model"
 	"google-oauth/web"
+	"html/template"
 	"net/http"
 	"time"
-
-	"github.com/gorilla/sessions"
 	"github.com/julienschmidt/httprouter"
 )
-
-var store = sessions.NewCookieStore([]byte(helper.LoadEnv("SESSION_SECRET")))
 
 func BasicOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	fmt.Fprint(writer, "selamat datang di endpoint basic auth! anda berhasil terautentikasi \n")
 }
 
 func HomeOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	session, _ := store.Get(request, "user_info")
+	session, _ := helper.Store.Get(request, "user_info")
 
-	name, ok := session.Values["name"].(string)
-	if !ok || name == "" {
-	http.Error(writer, "unauthorized", http.StatusUnauthorized)
+	user, ok := session.Values["user"].(model.AuthUser)
+	if !ok || user.Email == "" || user.Name == "" {
+		http.Error(writer, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// fmt.Fprint(writer, "welcome ", name)
+	tmpl := template.Must(template.ParseFiles("./resources/welcome.gohtml"))
+	tmpl.ExecuteTemplate(writer, "welcome.gohtml", user.Name)
 
-	fmt.Fprint(writer, "welcome ", name)
-	// http.ServeFile(writer, request, "./resources/welcome.html")
 }
 
 func Callback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -52,9 +51,6 @@ func Callback(writer http.ResponseWriter, request *http.Request, params httprout
 		http.Error(writer, "failed decode token", http.StatusInternalServerError)
 	}
 
-	// fmt.Fprint(writer, "you are authenticated! Token : \n", token.AccessToken)
-	// fmt.Fprint(writer, "\nID Token : \n", idToken)
-
 	tokenJson, err := json.Marshal(token)
 	if err != nil {
 		http.Error(writer, "failed to marshal token", http.StatusInternalServerError)
@@ -70,12 +66,14 @@ func Callback(writer http.ResponseWriter, request *http.Request, params httprout
 		Secure:   false,
 	})
 
-	session, _ := store.Get(request, "user_info")
-	session.Values["name"] = tokenPayload.Name
-	session.Values["email"] = tokenPayload.Email
-	session.Values["picture"] = tokenPayload.Picture
+	session, _ := helper.Store.Get(request, "user_info")
+	session.Values["user"] = model.AuthUser{
+		Name:    tokenPayload.Name,
+		Email:   tokenPayload.Email,
+		Picture: tokenPayload.Picture,
+	}
 
-	err = sessions.Save(request, writer)
+	err = session.Save(request, writer)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -100,19 +98,16 @@ func Logout(writer http.ResponseWriter, request *http.Request, params httprouter
 	http.Redirect(writer, request, "/home", http.StatusFound)
 }
 
-func GetUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	email := request.Context().Value("email").(string)
-	name := request.Context().Value("name").(string)
-	picture := request.Context().Value("picture").(string)
-	if email == "" || name == "" {
-		http.Error(writer, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+func GetProfile(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+
+	user := request.Context().Value("user")
+
+	authUser := user.(model.AuthUser)
 
 	userResponse := web.UserResponse{
-		Email:   email,
-		Name:    name,
-		Picture: picture,
+		Email:   authUser.Email,
+		Name:    authUser.Name,
+		Picture: authUser.Picture,
 	}
 
 	helper.WriteEncodeResponse(writer, web.WebResponse{
