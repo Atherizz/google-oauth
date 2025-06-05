@@ -55,7 +55,8 @@ func (middleware *Oauth2Middleware) Wrap(next httprouter.Handle) httprouter.Hand
 	return func(writer http.ResponseWriter, request *http.Request, param httprouter.Params) {
 		token, err := loadTokenFromRequest(request)
 		if err != nil || !token.Valid() {
-			http.Redirect(writer, request, OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline), http.StatusNotFound)
+			// http.Redirect(writer, request, OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline), http.StatusNotFound)
+			http.Redirect(writer, request, "/login", http.StatusSeeOther)
 			return
 		}
 	

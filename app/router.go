@@ -1,7 +1,7 @@
 package app
 
 import (
-	"google-oauth/controller"
+	"google-oauth/handler"
 	"google-oauth/middleware"
 
 	"github.com/julienschmidt/httprouter"
@@ -12,10 +12,15 @@ func NewRouter() *httprouter.Router {
 
 	oauthMiddleware := middleware.NewOauth2Middleware(router)
 	authMiddleware := middleware.NewAuthMiddleware(router)
-	router.GET("/home", oauthMiddleware.Wrap(controller.HomeOauth))
-	router.GET("/callback", controller.Callback)
-	router.GET("/api/user", oauthMiddleware.Wrap(authMiddleware.Wrap(controller.GetProfile)))
-	router.GET("/logout", oauthMiddleware.Wrap(controller.Logout))
+
+	router.GET("/auth/google/login", handler.LoginOauth)
+
+	router.GET("/login", handler.LoginView)
+	router.GET("/home", oauthMiddleware.Wrap(handler.HomeOauth))
+	router.GET("/callback", handler.Callback)
+	router.GET("/api/user", oauthMiddleware.Wrap(authMiddleware.Wrap(handler.ProfileApi)))
+	router.GET("/profile", oauthMiddleware.Wrap(authMiddleware.Wrap(handler.ProfileOauth)))
+	router.GET("/logout", oauthMiddleware.Wrap(handler.Logout))
 
 	return router
 

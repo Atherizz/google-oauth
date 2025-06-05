@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"encoding/base64"
@@ -7,11 +7,12 @@ import (
 	"google-oauth/helper"
 	"google-oauth/middleware"
 	"google-oauth/model"
-	"google-oauth/web"
 	"html/template"
 	"net/http"
 	"time"
+
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/oauth2"
 )
 
 func BasicOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -29,6 +30,25 @@ func HomeOauth(writer http.ResponseWriter, request *http.Request, params httprou
 	// fmt.Fprint(writer, "welcome ", name)
 	tmpl := template.Must(template.ParseFiles("./resources/welcome.gohtml"))
 	tmpl.ExecuteTemplate(writer, "welcome.gohtml", user.Name)
+
+}
+
+func LoginOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	url := middleware.OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline)
+	http.Redirect(writer, request, url, http.StatusSeeOther)
+
+}
+
+func ProfileOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	session, _ := helper.Store.Get(request, "user_info")
+
+	user, ok := session.Values["user"].(model.AuthUser)
+	if !ok || user.Email == "" || user.Name == "" {
+		http.Error(writer, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// fmt.Fprint(writer, "welcome ", name)
+	http.ServeFile(writer, request, "./resources/profile.html")
 
 }
 
@@ -95,24 +115,5 @@ func Logout(writer http.ResponseWriter, request *http.Request, params httprouter
 	}
 
 	http.SetCookie(writer, &cookie)
-	http.Redirect(writer, request, "/home", http.StatusFound)
-}
-
-func GetProfile(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-
-	user := request.Context().Value("user")
-
-	authUser := user.(model.AuthUser)
-
-	userResponse := web.UserResponse{
-		Email:   authUser.Email,
-		Name:    authUser.Name,
-		Picture: authUser.Picture,
-	}
-
-	helper.WriteEncodeResponse(writer, web.WebResponse{
-		Code:   200,
-		Status: "OK",
-		Data:   userResponse,
-	})
+	http.Redirect(writer, request, "/login", http.StatusFound)
 }

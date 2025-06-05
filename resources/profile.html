@@ -22,13 +22,12 @@
       try {
         const res = await fetch('/api/user');
         if (!res.ok) throw new Error('Failed to fetch user');
-
         const user = await res.json();
 
         document.getElementById('user-info').innerHTML = `
-          <img src="${user.picture}" alt="User photo" class="w-24 h-24 rounded-full mx-auto shadow">
-          <h2 class="text-xl font-semibold">${user.name}</h2>
-          <p class="text-gray-600">${user.email}</p>
+          <img src="${user.data.picture}" alt="User photo" class="w-24 h-24 rounded-full mx-auto shadow">
+          <h2 class="text-xl font-semibold">${user.data.name}</h2>
+          <p class="text-gray-600">${user.data.email}</p>
         `;
       } catch (err) {
         document.getElementById('user-info').innerHTML = `

@@ -29,7 +29,6 @@ func (middleware *AuthMiddleware) Wrap(next httprouter.Handle) httprouter.Handle
 		}
 
 		ctx := context.WithValue(request.Context(), "user", user)
-
 		next(writer, request.WithContext(ctx), param)
 	}
 }
