@@ -8,6 +8,7 @@ import (
 	"google-oauth/middleware"
 	"google-oauth/model"
 	"google-oauth/service"
+	"google-oauth/web"
 	"html/template"
 	"net/http"
 	"time"
@@ -47,6 +48,24 @@ func (controller *OauthController) HomeOauth(writer http.ResponseWriter, request
 func (controller *OauthController) LoginOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	url := middleware.OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline)
 	http.Redirect(writer, request, url, http.StatusSeeOther)
+
+}
+
+func (controller *OauthController) RegisterDefault(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	decoder := json.NewDecoder(request.Body)
+	registeredUser := web.UserRequest{}
+	err := decoder.Decode(&registeredUser)
+	if err != nil {
+		panic(err)
+	}
+	
+	response := controller.Service.RegisterDefault(request.Context(), registeredUser)
+
+	helper.WriteEncodeResponse(writer, web.WebResponse{
+		Code: 200,
+		Status: "OK",
+		Data: response,
+	})
 
 }
 
@@ -102,12 +121,12 @@ func (controller *OauthController) Callback(writer http.ResponseWriter, request 
 	if userResponse.Email == "" {
 		userRequest := model.AuthUser{
 			GoogleId: tokenPayload.Sub,
-			Name: tokenPayload.Name,
-			Email: tokenPayload.Email,
-			Picture: tokenPayload.Picture,
+			Name:     tokenPayload.Name,
+			Email:    tokenPayload.Email,
+			Picture:  tokenPayload.Picture,
 		}
 
-	controller.Service.Register(request.Context(), userRequest)
+		controller.Service.RegisterFromGoogle(request.Context(), userRequest)
 	}
 
 	session, _ := helper.Store.Get(request, "user_info")

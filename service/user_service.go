@@ -7,21 +7,24 @@ import (
 	"google-oauth/model"
 	"google-oauth/repository"
 	"google-oauth/web"
+	"github.com/go-playground/validator/v10"
 )
 
 type UserService struct {
 	Repository repository.UserRepository
 	DB         *sql.DB
+	Validate   *validator.Validate
 }
 
-func NewUserService(repo repository.UserRepository, db *sql.DB) *UserService {
+func NewUserService(repo repository.UserRepository, db *sql.DB, validator *validator.Validate) *UserService {
 	return &UserService{
 		Repository: repo,
 		DB: db,
+		Validate: validator,
 	}
 }
 
-func (service *UserService) Register(ctx context.Context, request model.AuthUser) web.UserResponse {
+func (service *UserService) RegisterFromGoogle(ctx context.Context, request model.AuthUser) web.UserResponse {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		panic(err)
@@ -39,7 +42,29 @@ func (service *UserService) Register(ctx context.Context, request model.AuthUser
 		Role: request.Role,
 	}
 
-	userRegister := service.Repository.Register(ctx, tx, user)	
+	userRegister := service.Repository.RegisterFromGoogle(ctx, tx, user)	
+	return helper.ToUserResponse(userRegister)
+}
+
+func (service *UserService) RegisterDefault(ctx context.Context, request web.UserRequest) web.UserResponse {
+	err := service.Validate.Struct(request)
+	if err != nil {
+		return web.UserResponse{}
+	}
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	user := model.AuthUser{
+		Name: request.Name,
+		Email: request.Email,
+		Password: request.Password,
+	}
+
+	userRegister := service.Repository.RegisterDefault(ctx, tx, user)	
 	return helper.ToUserResponse(userRegister)
 }
 

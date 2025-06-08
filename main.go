@@ -8,14 +8,18 @@ import (
 	"google-oauth/repository"
 	"google-oauth/service"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 	db := app.NewDB()
 
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	userRepository := repository.NewUserRepository()
-	userService := service.NewUserService(*userRepository,db)
+	userService := service.NewUserService(*userRepository,db, validate)
 	userController := handler.NewOauthController(userService)
 
 	router := app.NewRouter(userController)

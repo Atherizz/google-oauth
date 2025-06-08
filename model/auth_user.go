@@ -10,5 +10,6 @@ type AuthUser struct {
 	Picture     string
 	Provider    string
 	Role        string
+	Password 	string
 	LastLoginAt time.Time
 }

@@ -14,13 +14,16 @@ func NewRouter(oauthController *handler.OauthController) *httprouter.Router {
 	authMiddleware := middleware.NewAuthMiddleware(router)
 
 	router.GET("/auth/google/login", oauthController.LoginOauth)
-
-	router.GET("/login", handler.LoginView)
 	router.GET("/home", oauthMiddleware.Wrap(oauthController.HomeOauth))
 	router.GET("/callback", oauthController.Callback)
-	router.GET("/api/user", oauthMiddleware.Wrap(authMiddleware.Wrap(handler.ProfileApi)))
 	router.GET("/profile", oauthMiddleware.Wrap(authMiddleware.Wrap(oauthController.ProfileOauth)))
 	router.GET("/logout", oauthMiddleware.Wrap(oauthController.Logout))
+	
+	router.GET("/login", handler.LoginView)
+	router.GET("/register",handler.RegisterView)
+
+	router.GET("/api/user", oauthMiddleware.Wrap(authMiddleware.Wrap(handler.ProfileApi)))
+	router.POST("/api/register", oauthController.RegisterDefault)
 
 	return router
 
