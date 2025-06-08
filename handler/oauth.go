@@ -7,6 +7,7 @@ import (
 	"google-oauth/helper"
 	"google-oauth/middleware"
 	"google-oauth/model"
+	"google-oauth/service"
 	"html/template"
 	"net/http"
 	"time"
@@ -15,11 +16,21 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func BasicOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+type OauthController struct {
+	Service service.UserService
+}
+
+func NewOauthController(service *service.UserService) *OauthController {
+	return &OauthController{
+		Service: *service,
+	}
+}
+
+func (controller *OauthController) BasicOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	fmt.Fprint(writer, "selamat datang di endpoint basic auth! anda berhasil terautentikasi \n")
 }
 
-func HomeOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *OauthController) HomeOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	session, _ := helper.Store.Get(request, "user_info")
 
 	user, ok := session.Values["user"].(model.AuthUser)
@@ -33,13 +44,13 @@ func HomeOauth(writer http.ResponseWriter, request *http.Request, params httprou
 
 }
 
-func LoginOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *OauthController) LoginOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	url := middleware.OauthConfig.AuthCodeURL("", oauth2.AccessTypeOffline)
 	http.Redirect(writer, request, url, http.StatusSeeOther)
 
 }
 
-func ProfileOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *OauthController) ProfileOauth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	session, _ := helper.Store.Get(request, "user_info")
 
 	user, ok := session.Values["user"].(model.AuthUser)
@@ -52,7 +63,7 @@ func ProfileOauth(writer http.ResponseWriter, request *http.Request, params http
 
 }
 
-func Callback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *OauthController) Callback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	code := request.URL.Query().Get("code")
 	token, err := middleware.OauthConfig.Exchange(request.Context(), code)
 	if err != nil {
@@ -86,11 +97,25 @@ func Callback(writer http.ResponseWriter, request *http.Request, params httprout
 		Secure:   false,
 	})
 
+	userResponse := controller.Service.GetUserByEmail(request.Context(), tokenPayload.Email)
+
+	if userResponse.Email == "" {
+		userRequest := model.AuthUser{
+			GoogleId: tokenPayload.Sub,
+			Name: tokenPayload.Name,
+			Email: tokenPayload.Email,
+			Picture: tokenPayload.Picture,
+		}
+
+	controller.Service.Register(request.Context(), userRequest)
+	}
+
 	session, _ := helper.Store.Get(request, "user_info")
 	session.Values["user"] = model.AuthUser{
-		Name:    tokenPayload.Name,
-		Email:   tokenPayload.Email,
-		Picture: tokenPayload.Picture,
+		Name:     tokenPayload.Name,
+		Email:    tokenPayload.Email,
+		Picture:  tokenPayload.Picture,
+		GoogleId: tokenPayload.Sub,
 	}
 
 	err = session.Save(request, writer)
@@ -102,7 +127,7 @@ func Callback(writer http.ResponseWriter, request *http.Request, params httprout
 	http.Redirect(writer, request, "/home", http.StatusFound)
 }
 
-func Logout(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *OauthController) Logout(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 
 	cookie := http.Cookie{
 		Name:     "oauth_token",
